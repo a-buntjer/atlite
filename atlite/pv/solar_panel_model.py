@@ -7,6 +7,15 @@
 
 import numpy as np
 
+
+def _inverter_efficiency(eff, pc):
+    if 'a_1' not in pc:
+        return pc.get('inverter_efficiency', 1.)
+    eff_inv = pc['a_1']*np.log(eff+pc['a_2'])+pc['a_3']+\
+        pc['a_4']**2*eff+pc['a_5']*eff+pc['a_6']
+    return eff_inv*pc.get('inverter_efficiency', 1.)
+
+
 # Huld model was copied from gsee -- global solar energy estimator
 # by Stefan Pfenninger
 # https://github.com/renewables-ninja/gsee/blob/master/gsee/pv.py
@@ -38,7 +47,7 @@ def _power_huld(irradiance, t_amb, pc):
 
     eff = eff.fillna(0.).clip(min=0)
 
-    return G_ * eff * pc.get('inverter_efficiency', 1.)
+    return G_ * eff * _inverter_efficiency(eff, pc)
 
 
 def _power_bofinger(irradiance, t_amb, pc):
@@ -66,7 +75,7 @@ def _power_bofinger(irradiance, t_amb, pc):
            ).fillna(0)
 
     capacity = (pc['A'] + pc['B'] * 1000. + pc['C'] * np.log(1000.)) * 1e3
-    power = irradiance * eta * (pc.get('inverter_efficiency', 1.) / capacity)
+    power = irradiance * eta * (_inverter_efficiency(eta, pc) / capacity)
     power = power.where(irradiance >= pc['threshold'], 0)
     return power.rename('AC power')
 

@@ -3,11 +3,94 @@
 # SPDX-FileCopyrightText: 2016-2019 The Atlite Authors
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
-
+import pvlib
 from numpy import pi
 import xarray as xr
 from numpy import sin, cos, arcsin, arccos, arctan2, deg2rad
 
+def SolarPosition(ds):
+    ds=cutout.data
+    t = ds.indexes['time']
+    n = xr.DataArray(t.to_julian_date(), [t]) - 2451545.0
+    hour = ds['time.hour']
+    minute = ds['time.minute']
+
+    if 'time' in ds.chunks:
+        chunks = {'time': ds.chunks['time']}
+        n = n.chunk(chunks)
+        hour = hour.chunk(chunks)
+        minute = minute.chunk(chunks)
+  
+    
+    
+    def _get_solarposition(t, y, x):
+        solarpos = pvlib.solarposition.get_solarposition(t, y, x)
+        return solarpos.azimuth, solarpos.apparent_zenith
+            
+        
+    
+    ds_solarpos = xr.apply_ufunc(_get_solarposition,
+                   ds.time, ds.lat, ds.lon,
+                   input_core_dims=[["time"], [], []],
+                   output_core_dims=[["time"], ["time"]],
+                   vectorize=True,
+                   dask="parallelized")
+    for ds_solar, name in zip(ds_solarpos, ['azimuth', 'apparent_zenith']):
+        ds_solar.name = name
+    
+    ds_solarpos = xr.merge(ds_solarpos).transpose()   
+        
+    ds_airmass = xr.apply_ufunc(pvlib.atmosphere.get_relative_airmass,
+                   ds_solarpos.apparent_zenith,
+                   dask="parallelized")
+    ds_airmass.name = 'airmass' 
+    
+    dni_extra = pvlib.irradiance.get_extra_radiation(t)
+    
+    
+    surface_tilt=30
+    surface_azimuth=180
+    
+    # poa_sky_diffuse = pvlib.irradiance.perez(
+    #     surface_tilt,
+    #     surface_azimuth,
+    #     ds.influx_direct.isel(x=0,y=0),
+    #     ds.influx_diffuse.isel(x=0,y=0),
+    #     dni_extra,
+    #     ds.apparent_zenith.isel(x=0,y=0),
+    #     ds.azimuth.isel(x=0,y=0),
+    #     ds.airmass.isel(x=0,y=0),
+    # )
+    
+    def _get_poa_sky_diffuse(
+            dni, dhi, apz, azi, airm, dni_extra, surface_tilt,
+            surface_azimuth):
+        return pvlib.irradiance.perez(
+            surface_tilt, surface_azimuth, dni, dhi,
+            dni_extra, apz, azi, airm)
+    
+    ds = ds.compute()
+    ds_solarpos = ds_solarpos.compute()
+    ds_airmass = ds_airmass.compute()
+    ds_poa = xr.apply_ufunc(
+        _get_poa_sky_diffuse,
+        ds.influx_direct,
+        ds.influx_diffuse,
+        ds_solarpos.apparent_zenith,
+        ds_solarpos.azimuth,
+        ds_airmass,
+        kwargs={"dni_extra": dni_extra,
+                "surface_tilt": surface_tilt,
+                "surface_azimuth": surface_azimuth,
+                },
+        input_core_dims=[["time"] for x in range(5)],
+        output_core_dims=[["time"]],
+        vectorize=True, dask="parallelized")
+    
+    poa_ground_diffuse = pvlib.irradiance.get_ground_diffuse(
+        surface_tilt, tmy_data["GHI"], albedo=albedo
+    )
+    
 
 def SolarPosition(ds):
     """

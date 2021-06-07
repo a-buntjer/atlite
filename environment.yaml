@@ -9,6 +9,7 @@ channels:
   - defaults
   - conda-forge
   - defaults
+  - pvlib
 dependencies:
   - python>=3.6
   - scipy
@@ -21,7 +22,9 @@ dependencies:
   - cdsapi
   - pyproj>=2.0
   - rasterio>=1.0
-
+  - progressbar
+  - matplotlib
+  - pvlib::pvlib
   # Recommended for pandas and xarray
   - bottleneck
   - numexpr

@@ -126,7 +126,8 @@ def get_data_influx(retrieval_params):
 
     ds = _rename_and_clean_coords(ds)
 
-    ds = ds.rename({'fdir': 'influx_direct', 'tisr': 'influx_toa'})
+    ds = ds.rename({'fdir': 'influx_direct', 'tisr': 'influx_toa',
+                    'sf': 'snowfall'})
     ds['albedo'] = (((ds['ssrd'] - ds['ssr']) /
                      ds['ssrd'].where(ds['ssrd'] != 0))
                     .fillna(0.)
@@ -141,7 +142,6 @@ def get_data_influx(retrieval_params):
     for a in ('influx_direct', 'influx_diffuse', 'influx_toa'):
         ds[a] = ds[a] / (60. * 60.)
         ds[a].attrs['units'] = 'W m**-2'
-
     return ds
 
 

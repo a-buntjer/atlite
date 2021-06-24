@@ -341,13 +341,32 @@ def solar_thermal(cutout, orientation={'slope': 45., 'azimuth': 180.},
 
 
 # wind
-def convert_wind(ds, turbine):
+def convert_wind(ds, turbine, **params):
     """Convert wind speeds for turbine to wind energy generation."""
 
-    V, POW, hub_height, P = itemgetter('V', 'POW', 'hub_height', 'P')(turbine)
-
+    V, POW, hub_height, P,  = itemgetter(
+        'V', 'POW', 'hub_height', 'P')(turbine)
+    
+    if 'c_t'  in turbine:
+        c_t = itemgetter('c_t')
+    else:
+        c_t = []
     wnd_hub = windm.extrapolate_wind_speed(ds, to_height=hub_height)
-
+    
+    if len(c_t) > 0:
+        def _interpolate(da):
+            return np.interp(da, V, c_t)
+        
+        ct = xr.apply_ufunc(
+            _interpolate, wnd_hub,
+            input_core_dims=[[]],
+            output_core_dims=[[]],
+            output_dtypes=[wnd_hub.dtype],
+            dask="parallelized")
+        x_d = params.get('x_d', 5)
+        k = params.get('k', 0.075)
+        wnd_hub = windm.calculate_wake(wnd_hub, ct, k, x_d)
+    
     def _interpolate(da):
         return np.interp(da, V, POW / P)
 

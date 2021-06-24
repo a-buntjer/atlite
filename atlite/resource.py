@@ -302,6 +302,11 @@ def get_oedb_windturbineconfig(search=None, **search_params):
         "POW": power,
         "P": power.max()
     }
+    if ds.has_ct_curve:
+        turbineconf['c_t'] = np.array(
+            json.loads(ds.thrust_coefficient_curve_values))
+    else:
+        turbineconf['c_t'] = []
 
     # Cache in windturbines
     global windturbines

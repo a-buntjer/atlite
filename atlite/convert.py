@@ -8,6 +8,17 @@
 All functions for converting weather data into energy system model data.
 """
 
+from .resource import (get_windturbineconfig, get_solarpanelconfig,
+                       windturbine_smooth)
+from . import wind as windm
+from . import hydro as hydrom
+from .pv.orientation import get_orientation, SurfaceOrientation
+from .pv.solar_panel_model import SolarPanelModel
+from .pv.irradiation import TiltedIrradiation
+from .pv.solar_position import SolarPosition
+from .pv.solar_pvlib import PVSystemPower
+from .gis import spdiag
+from .aggregate import aggregate_matrix
 import xarray as xr
 import numpy as np
 import pandas as pd
@@ -20,21 +31,6 @@ from scipy.sparse import csr_matrix
 
 import logging
 logger = logging.getLogger(__name__)
-
-from .aggregate import aggregate_matrix
-from .gis import spdiag
-
-from .pv.solar_pvlib import PVSystemPower
-from .pv.solar_position import SolarPosition
-from .pv.irradiation import TiltedIrradiation
-from .pv.solar_panel_model import SolarPanelModel
-from .pv.orientation import get_orientation, SurfaceOrientation
-
-from . import hydro as hydrom
-from . import wind as windm
-
-from .resource import (get_windturbineconfig, get_solarpanelconfig,
-                       windturbine_smooth)
 
 
 def convert_and_aggregate(cutout, convert_func, matrix=None,
@@ -113,13 +109,11 @@ def convert_and_aggregate(cutout, convert_func, matrix=None,
         else:
             return maybe_progressbar(da.sum('time'), show_progress)
 
-
     if shapes is not None:
         geoseries_like = (pd.Series, gpd.GeoDataFrame, gpd.GeoSeries)
         if isinstance(shapes, geoseries_like) and index is None:
             index = shapes.index
         matrix = cutout.indicatormatrix(shapes, shapes_crs)
-
 
     if layout is not None:
         assert isinstance(layout, xr.DataArray)
@@ -133,18 +127,16 @@ def convert_and_aggregate(cutout, convert_func, matrix=None,
     matrix = csr_matrix(matrix)
     results = aggregate_matrix(da, matrix=matrix, index=index)
 
-
     if per_unit or return_capacity:
         caps = matrix.sum(-1)
         capacity = xr.DataArray(np.asarray(caps).flatten(), [index])
-        capacity.attrs['units'] ='MW'
+        capacity.attrs['units'] = 'MW'
 
     if per_unit:
-        results = (results / capacity.where(capacity!=0)).fillna(0.)
+        results = (results / capacity.where(capacity != 0)).fillna(0.)
         results.attrs['units'] = 'p.u.'
     else:
         results.attrs['units'] = 'MW'
-
 
     if return_capacity:
         return maybe_progressbar(results, show_progress, **dask_kwargs), capacity
@@ -284,7 +276,7 @@ def convert_solar_thermal(ds, orientation, trigon_model, clearsky_model,
     # overall efficiency; can be negative, so need to remove negative values
     # below
     eta = c0 - c1 * ((t_store - ds['temperature']) /
-                     irradiation.where(irradiation!=0)).fillna(0)
+                     irradiation.where(irradiation != 0)).fillna(0)
 
     output = irradiation * eta
 
@@ -346,17 +338,17 @@ def convert_wind(ds, turbine, **params):
 
     V, POW, hub_height, P,  = itemgetter(
         'V', 'POW', 'hub_height', 'P')(turbine)
-    
-    if 'c_t'  in turbine:
-        c_t = itemgetter('c_t')
+
+    if 'c_t' in turbine:
+        c_t = itemgetter('c_t')(turbine)
     else:
         c_t = []
     wnd_hub = windm.extrapolate_wind_speed(ds, to_height=hub_height)
-    
+
     if len(c_t) > 0:
         def _interpolate(da):
             return np.interp(da, V, c_t)
-        
+
         ct = xr.apply_ufunc(
             _interpolate, wnd_hub,
             input_core_dims=[[]],
@@ -366,7 +358,7 @@ def convert_wind(ds, turbine, **params):
         x_d = params.get('x_d', 5)
         k = params.get('k', 0.075)
         wnd_hub = windm.calculate_wake(wnd_hub, ct, k, x_d)
-    
+
     def _interpolate(da):
         return np.interp(da, V, POW / P)
 
@@ -423,13 +415,14 @@ def convert_pv(ds, surface_tilt, surface_azimuth, module_name, inverter_name):
         ds, surface_tilt, surface_azimuth, module_name, inverter_name)
     return solar_panel
 
+
 def pv(cutout, surface_tilt, surface_azimuth, module_name,
        inverter_name, **params):
     return cutout.convert_and_aggregate(
         convert_func=convert_pv, surface_tilt=surface_tilt,
         surface_azimuth=surface_azimuth,
-        module_name=module_name, inverter_name=inverter_name, **params)        
-    
+        module_name=module_name, inverter_name=inverter_name, **params)
+
 # def convert_pv(
 #         ds,
 #         panel,
@@ -515,7 +508,8 @@ def convert_runoff(ds, weight_with_height=True):
 
 def runoff(cutout, smooth=None, lower_threshold_quantile=None,
            normalize_using_yearly=None, **params):
-    result = cutout.convert_and_aggregate(convert_func=convert_runoff, **params)
+    result = cutout.convert_and_aggregate(
+        convert_func=convert_runoff, **params)
 
     if smooth is not None:
         if smooth is True:

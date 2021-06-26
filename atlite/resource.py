@@ -305,6 +305,8 @@ def get_oedb_windturbineconfig(search=None, **search_params):
     if ds.has_ct_curve:
         turbineconf['c_t'] = np.array(
             json.loads(ds.thrust_coefficient_curve_values))
+        turbineconf['V_c_t'] = np.array(
+            json.loads(ds.thrust_coefficient_curve_wind_speeds))
     else:
         turbineconf['c_t'] = []
 

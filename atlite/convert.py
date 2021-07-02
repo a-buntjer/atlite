@@ -403,7 +403,7 @@ def wind(cutout, turbine, smooth=False, **params):
         turbine = get_windturbineconfig(turbine)
 
     if smooth:
-        turbine = windturbine_smooth(turbine, params=smooth)
+        turbine = windturbine_smooth(turbine, params=params)
 
     return cutout.convert_and_aggregate(
         convert_func=convert_wind, turbine=turbine, **params)

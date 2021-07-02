@@ -140,7 +140,6 @@ def get_data_influx(retrieval_params):
     for a in ("influx_direct", "influx_diffuse", "influx_toa"):
         ds[a] = ds[a] / (60.0 * 60.0)
         ds[a].attrs["units"] = "W m**-2"
-
     return ds
 
 

@@ -8,6 +8,7 @@ name: atlite
 channels:
   - conda-forge
   - defaults
+  - pvlib
 dependencies:
   - python>=3.6
   - numpy
@@ -26,7 +27,7 @@ dependencies:
   - shapely
   - progressbar2
   - tqdm
-
+  - pvlib::pvlib
   # dev tools
   - black
   - pre-commit

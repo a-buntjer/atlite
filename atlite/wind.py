@@ -78,3 +78,9 @@ def extrapolate_wind_speed(ds, to_height, from_height=None):
                           "units": "m s**-1"})
 
     return wnd_spd.rename(to_name)
+
+
+def calculate_wake(wnd, ct, k, x_d):
+    # Jensen model
+    u_w = (1- (1- (1-ct)**(1/2))/(1+2*k*x_d)**2)*wnd
+    return u_w

@@ -210,11 +210,11 @@ def get_oedb_windturbineconfig(search=None, **search_params):
 
     # Parse information of different allowed 'turbine' values
     if isinstance(search, int):
-        search_params.setdefault('id', search)
+        search_params.setdefault("id", search)
         search = None
 
     # Retrieve and cache OEDB turbine data
-    OEDB_URL = 'https://openenergy-platform.org/api/v0/schema/supply/tables/wind_turbine_library/rows'
+    OEDB_URL = "https://openenergy-platform.org/api/v0/schema/supply/tables/wind_turbine_library/rows"
 
     # Cache turbine request locally
     global _oedb_turbines
@@ -229,29 +229,28 @@ def get_oedb_windturbineconfig(search=None, **search_params):
         _oedb_turbines = df[df.has_power_curve]
 
     logger.info(
-        "Searching turbine power curve in OEDB database using " +
-        ", ".join(
-            f"{k}='{v}'" for (
-                k,
-                v) in search_params.items()) +
-        ".")
+        "Searching turbine power curve in OEDB database using "
+        + ", ".join(f"{k}='{v}'" for (k, v) in search_params.items())
+        + "."
+    )
 
     # Working copy
     df = _oedb_turbines
     selector = True
     if search is not None:
-        selector &= (df.name.str.contains(search, case=False) |
-                     df.turbine_type.str.contains(search, case=False))
-    if 'id' in search_params:
-        selector &= df.id == int(search_params['id'])
-    if 'name' in search_params:
-        selector &= df.name.str.contains(search_params['name'], case=False)
-    if 'turbine_type' in search_params:
-        selector &= df.turbine_type.str.contains(
-            search_params['name'], case=False)
-    if 'manufacturer' in search_params:
+        selector &= df.name.str.contains(
+            search, case=False
+        ) | df.turbine_type.str.contains(search, case=False)
+    if "id" in search_params:
+        selector &= df.id == int(search_params["id"])
+    if "name" in search_params:
+        selector &= df.name.str.contains(search_params["name"], case=False)
+    if "turbine_type" in search_params:
+        selector &= df.turbine_type.str.contains(search_params["name"], case=False)
+    if "manufacturer" in search_params:
         selector &= df.manufacturer.str.contains(
-            search_params['manufacturer'], case=False)
+            search_params["manufacturer"], case=False
+        )
 
     df = df.loc[selector]
 
@@ -260,8 +259,8 @@ def get_oedb_windturbineconfig(search=None, **search_params):
     elif len(df) > 1:
         raise RuntimeError(
             f"Provided information corresponds to {len(df)} turbines,"
-            " use `id` for an unambiguous search.\n" +
-            str(df[['id', 'manufacturer', 'turbine_type']])
+            " use `id` for an unambiguous search.\n"
+            + str(df[["id", "manufacturer", "turbine_type"]])
         )
 
     # Convert to series for simpliticty
@@ -276,12 +275,10 @@ def get_oedb_windturbineconfig(search=None, **search_params):
         hub_height = 100
         logger.warning(
             "No hub_height defined in dataset. Manual clean-up required."
-            "Assuming a hub_height of 100m for now.")
+            "Assuming a hub_height of 100m for now."
+        )
     elif isinstance(hub_height, str):
-        hub_heights = [
-            float(t) for t in re.split(
-                r"\s*;\s*",
-                hub_height.strip()) if t]
+        hub_heights = [float(t) for t in re.split(r"\s*;\s*", hub_height.strip()) if t]
 
         if len(hub_heights) > 1:
             hub_height = np.mean(hub_heights, dtype=int)
@@ -289,7 +286,8 @@ def get_oedb_windturbineconfig(search=None, **search_params):
                 "Multiple values for hub_height in dataset (%s). "
                 "Manual clean-up required. Using the averge %dm for now.",
                 hub_heights,
-                hub_height)
+                hub_height,
+            )
         else:
             hub_height = hub_heights[0]
 
@@ -300,12 +298,19 @@ def get_oedb_windturbineconfig(search=None, **search_params):
         "hub_height": hub_height,
         "V": np.array(json.loads(ds.power_curve_wind_speeds)),
         "POW": power,
-        "P": power.max()
+        "P": power.max(),
     }
+    if ds.has_ct_curve:
+        turbineconf['c_t'] = np.array(
+            json.loads(ds.thrust_coefficient_curve_values))
+        turbineconf['V_c_t'] = np.array(
+            json.loads(ds.thrust_coefficient_curve_wind_speeds))
+    else:
+        turbineconf['c_t'] = []
 
     # Cache in windturbines
     global windturbines
-    charmap = str.maketrans('/- ', '___')
+    charmap = str.maketrans("/- ", "___")
     name = "{manufacturer}_{name}".format(**turbineconf).translate(charmap)
     windturbines[name] = turbineconf
 

@@ -6,7 +6,7 @@
 Atlite
 ======
 
-|PyPI version| |Conda version| |Documentation Status| |travis| |standard-readme compliant|
+|PyPI version| |Conda version| |Documentation Status| |ci| |codecov| |standard-readme compliant| |GPL-3-or-later-image| |reuse| |black| |pre-commit.ci| |joss|
 
 Atlite is a `free software`_, `xarray`_-based Python library for
 converting weather data (like wind speeds, solar influx) into energy systems data.
@@ -33,7 +33,7 @@ resources low.
 ..   combined with ERA5 temperature).
 
 
-Atlite can process the following weather data fields and can convert them into following power-system relevant time series for any subsets of a full weather data base.
+Atlite can process the following weather data fields and can convert them into following power-system relevant time series for any subsets of a full weather database.
 
 .. image:: doc/workflow_chart.png
 
@@ -162,6 +162,17 @@ See the individual files for license details.
    :target: https://github.com/RichardLitt/standard-readme
 .. |GPL-3-or-later-image| image:: https://img.shields.io/pypi/l/atlite.svg
    :target: LICENSES/GPL-3.0-or-later.txt
-.. |travis| image:: https://img.shields.io/travis/PyPSA/atlite/master.svg
-    :target: https://travis-ci.org/PyPSA/atlite
-    :alt: Build status
+.. |codecov| image:: https://codecov.io/gh/PyPSA/atlite/branch/master/graph/badge.svg?token=TEJ16CMIHJ
+   :target: https://codecov.io/gh/PyPSA/atlite
+.. |ci| image:: https://github.com/PyPSA/atlite/actions/workflows/CI.yaml/badge.svg
+   :target: https://github.com/PyPSA/atlite/actions/workflows/CI.yaml
+.. |reuse| image:: https://api.reuse.software/badge/github.com/pypsa/atlite
+   :target: https://api.reuse.software/info/github.com/pypsa/atlite
+.. |black| image:: https://img.shields.io/badge/code%20style-black-000000.svg
+   :target: https://github.com/psf/black
+   :alt: Code style: black
+.. |pre-commit.ci| image:: https://results.pre-commit.ci/badge/github/PyPSA/atlite/master.svg
+   :target: https://results.pre-commit.ci/latest/github/PyPSA/atlite/master
+   :alt: pre-commit.ci status
+.. |joss| image:: https://joss.theoj.org/papers/10.21105/joss.03294/status.svg
+   :target: https://doi.org/10.21105/joss.03294

@@ -11,8 +11,8 @@ import numpy as np
 def _inverter_efficiency(eff, pc):
     eta_nom = pc.get('inverter_efficiency', 1.)
     eta_ref = 0.9637
-    eff_inv = eta_nom/eta_ref*(-0.0162*eff-np.true_divide(
-        0.0059, eff)+0.9858)
+    eff_inv = eta_nom/eta_ref*(-0.0162*eff-np.divide(
+        0.0059, eff.values, out=np.zeros_like(eff.values), where=eff.values!=0)+0.9858)
     eff_inv = eff_inv.fillna(0.0).clip(min=0)
     return eff_inv
 

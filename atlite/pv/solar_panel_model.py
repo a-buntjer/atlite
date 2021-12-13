@@ -9,11 +9,12 @@ import numpy as np
 
 
 def _inverter_efficiency(eff, pc):
-    if 'a_1' not in pc:
-        return pc.get('inverter_efficiency', 1.)
-    eff_inv = pc['a_1']*np.log(eff+pc['a_2'])+pc['a_3']+\
-        pc['a_4']**2*eff+pc['a_5']*eff+pc['a_6']
-    return eff_inv*pc.get('inverter_efficiency', 1.)
+    eta_nom = pc.get('inverter_efficiency', 1.)
+    eta_ref = 0.9637
+    eff_inv = eta_nom/eta_ref*(-0.0162*eff-np.divide(
+        0.0059, eff.values, out=np.zeros_like(eff.values), where=eff.values!=0)+0.9858)
+    eff_inv = eff_inv.fillna(0.0).clip(min=0)
+    return eff_inv
 
 
 # Huld model was copied from gsee -- global solar energy estimator
@@ -50,7 +51,11 @@ def _power_huld(irradiance, t_amb, pc):
 
     eff = eff.fillna(0.0).clip(min=0)
 
-    return G_ * eff * pc.get("inverter_efficiency", 1.0)
+    da = G_ * eff * _inverter_efficiency(eff, pc)
+    da.attrs["units"] = "kWh/kWp"
+    da = da.rename("specific generation")
+
+    return da
 
 
 def _power_bofinger(irradiance, t_amb, pc):
@@ -77,10 +82,10 @@ def _power_bofinger(irradiance, t_amb, pc):
         / (1.0 + pc["D"] * fraction / pc["ta"] * eta_ref * irradiance)
     ).fillna(0)
 
-    capacity = (pc["A"] + pc["B"] * 1000.0 + pc["C"] * np.log(1000.0)) * 1e3
-    power = irradiance * eta * (pc.get("inverter_efficiency", 1.0) / capacity)
-    power = power.where(irradiance >= pc["threshold"], 0)
-    return power.rename("AC power")
+    capacity = (pc['A'] + pc['B'] * 1000. + pc['C'] * np.log(1000.)) * 1e3
+    power = irradiance * eta * (_inverter_efficiency(eta, pc) / capacity)
+    power = power.where(irradiance >= pc['threshold'], 0)
+    return power.rename('AC power')
 
 
 def SolarPanelModel(ds, irradiance, pc):
